@@ -1,0 +1,10 @@
+{
+  "name": "MemoCups",
+  "short_name": "MemoCups",
+  "description": "Juego casual de memoria con 3 vasos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eff6ff",
+  "theme_color": "#7dd3fc",
+  "icons": []
+}
