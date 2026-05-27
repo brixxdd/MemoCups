@@ -16,6 +16,7 @@ export function Cup({
   targetLabel,
   activeSwap,
   swapMs,
+  slotWidth,
   onPick,
 }: {
   cupId: number;
@@ -30,47 +31,116 @@ export function Cup({
   targetLabel: string;
   activeSwap: { from: number; to: number } | null;
   swapMs: number;
+  slotWidth: number;
   onPick: () => void;
 }) {
   const isCorrect = cupId === round.correctCup;
   const target = round.mode === 'word' ? round.word : round.ink;
-  const isActiveSwapCup = activeSwap ? slotIndex === activeSwap.from || slotIndex === activeSwap.to : false;
-  const swapDirection = activeSwap ? (slotIndex === activeSwap.from ? (activeSwap.to > activeSwap.from ? 1 : -1) : activeSwap.from > activeSwap.to ? 1 : -1) : 0;
   const hasContent = showToken || reveal;
 
-  // Arc trajectory: keyframes trace a parabola, duration synced with swapMs
-  const arcDuration = swapMs / 1000;
-  const arcY = isActiveSwapCup ? [0, -72, -88, -72, 0] : isSelected ? -14 : 0;
-  const arcRotate = isActiveSwapCup
-    ? [0, swapDirection * 10, swapDirection * 16, swapDirection * 10, 0]
-    : isSelected
-      ? (isCorrect ? -4 : 5)
-      : hasContent ? -3.5 : 0;
+  // Determine if this cup is involved in the active swap and which role
+  const isFrom = activeSwap ? slotIndex === activeSwap.from : false;
+  const isTo = activeSwap ? slotIndex === activeSwap.to : false;
+  const isActiveSwapCup = isFrom || isTo;
+
+  // 3D crossing effect:
+  // "from" cup goes OVER (higher arc, scales up, higher z-index, rotates toward destination)
+  // "to"   cup goes UNDER (lower arc, scales down slightly, stays behind)
+  const isOverCup = isFrom; // the cup moving "from" passes over
+  const isUnderCup = isTo;
+
+  // Direction of travel (+1 = right, -1 = left)
+  const travelDir = activeSwap
+    ? slotIndex === activeSwap.from
+      ? activeSwap.to > activeSwap.from ? 1 : -1
+      : activeSwap.from > activeSwap.to ? 1 : -1
+    : 0;
+
+  // Horizontal travel distance in pixels (gap between slot centers)
+  const dist = activeSwap ? Math.abs(activeSwap.to - activeSwap.from) * slotWidth : 0;
+  const xTravel = travelDir * dist;
+
+  // Y arc heights — over cup arcs higher, under cup arcs lower
+  const arcPeakOver = -90;
+  const arcPeakUnder = -40;
+
+  // Build keyframes: 5 stops [start, lift, peak-cross, descend, land]
+  const xFrames = isActiveSwapCup ? [0, xTravel * 0.25, xTravel * 0.5, xTravel * 0.75, xTravel] : undefined;
+  const yFrames = isOverCup
+    ? [0, arcPeakOver * 0.6, arcPeakOver, arcPeakOver * 0.5, 0]
+    : isUnderCup
+      ? [0, arcPeakUnder * 0.5, arcPeakUnder, arcPeakUnder * 0.5, 0]
+      : undefined;
+
+  // 3D rotation: tilts toward destination, peaks mid-flight, returns
+  const rotateYFrames = isOverCup
+    ? [0, travelDir * -18, travelDir * -28, travelDir * -18, 0]
+    : isUnderCup
+      ? [0, travelDir * -8, travelDir * -14, travelDir * -8, 0]
+      : undefined;
+
+  const scaleFrames = isOverCup
+    ? [1, 1.08, 1.13, 1.08, 1]
+    : isUnderCup
+      ? [1, 0.94, 0.88, 0.94, 1]
+      : undefined;
+
+  const dur = swapMs / 1000;
+  const times = [0, 0.2, 0.5, 0.8, 1];
+
+  const swapTransition = {
+    duration: dur,
+    ease: 'easeInOut' as const,
+    times,
+  };
 
   return (
     <motion.button
-      layout
       aria-label={`Vaso ${cupId + 1}`}
       className="relative grid h-[154px] min-w-0 place-items-center rounded-[26px] transition-transform active:scale-[0.97] disabled:active:scale-100 sm:h-[190px]"
+      style={{
+        // Over cup renders above under cup at the crossing point
+        zIndex: isOverCup ? 20 : isUnderCup ? 1 : 10,
+        // Enable perspective for rotateY
+        perspective: 600,
+      }}
       disabled={disabled}
       onClick={onPick}
-      animate={{
-        y: arcY,
-        scale: isActiveSwapCup ? [1, 1.06, 1.1, 1.06, 1] : 1,
-        rotate: arcRotate,
-      }}
+      animate={
+        isActiveSwapCup
+          ? {
+              x: xFrames,
+              y: yFrames,
+              rotateY: rotateYFrames,
+              scale: scaleFrames,
+            }
+          : {
+              x: 0,
+              y: isSelected ? -14 : 0,
+              rotateY: 0,
+              scale: 1,
+              rotate: isSelected ? (isCorrect ? -4 : 5) : hasContent ? -3.5 : 0,
+            }
+      }
       whileTap={!disabled ? { scale: 0.96 } : undefined}
       transition={
         isActiveSwapCup
-          ? { duration: arcDuration, ease: [0.45, 0, 0.55, 1], times: [0, 0.2, 0.5, 0.8, 1] }
+          ? swapTransition
           : { type: 'spring', stiffness: 220, damping: 18, mass: 0.9 }
       }
     >
+      {/* Ground shadow — stretches in direction of travel */}
       <motion.div
         className="absolute bottom-2 h-7 w-20 rounded-full bg-slate-900/12 blur-sm sm:w-28"
-        animate={{ scaleX: isSelected ? 0.78 : isActiveSwapCup ? 0.8 : 1 }}
+        animate={{
+          scaleX: isSelected ? 0.78 : isOverCup ? 1.3 : isUnderCup ? 0.7 : 1,
+          x: isOverCup ? xFrames?.map((v) => v * 0.15) ?? 0 : 0,
+          opacity: isUnderCup ? [1, 0.5, 0.4, 0.5, 1] : 1,
+        }}
+        transition={isActiveSwapCup ? swapTransition : { type: 'spring', stiffness: 220, damping: 18 }}
       />
 
+      {/* Content marker dot above cup */}
       <motion.div
         className="absolute -top-8 z-30 grid h-7 w-7 place-items-center rounded-full bg-white shadow-soft sm:-top-9 sm:h-8 sm:w-8"
         initial={false}
@@ -89,6 +159,7 @@ export function Cup({
         <div className={`h-3.5 w-3.5 rounded-full ${COLORS[target].className.replace('text-', 'bg-')}`} />
       </motion.div>
 
+      {/* Token under the cup */}
       <motion.div
         className="absolute bottom-12 z-0 grid h-12 w-16 place-items-center rounded-full bg-white shadow-soft sm:h-14 sm:w-20"
         initial={false}
@@ -98,6 +169,7 @@ export function Cup({
         <span className={`text-xs font-black ${COLORS[target].className}`}>{COLORS[target].label}</span>
       </motion.div>
 
+      {/* "Recuerda" tooltip above cup */}
       <motion.div
         className="absolute -top-16 z-20 grid place-items-center"
         initial={false}
@@ -111,6 +183,7 @@ export function Cup({
         <div className={`mt-1 h-3 w-3 rotate-45 bg-white/92 shadow-soft`} />
       </motion.div>
 
+      {/* The cup body */}
       <motion.div
         className={`relative z-10 h-28 w-full max-w-[118px] rounded-b-[38px] rounded-t-[18px] border-t-[12px] bg-gradient-to-b ${cupStyle} shadow-[inset_0_-12px_0_rgba(15,23,42,.13),0_11px_0_rgba(15,23,42,.12)] sm:h-36 sm:max-w-[150px]`}
         animate={{

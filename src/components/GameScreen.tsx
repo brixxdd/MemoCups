@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { applyMove, getDifficulty, getRoundTarget } from '../lib/game';
 import { sound } from '../lib/sound';
 import { useGameStore } from '../store/gameStore';
@@ -18,9 +18,25 @@ export function GameScreen() {
   const chooseCup = useGameStore((state) => state.chooseCup);
   const continueAfterResult = useGameStore((state) => state.continueAfterResult);
   const timers = useRef<number[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [slotWidth, setSlotWidth] = useState(0);
   const [activeSwap, setActiveSwap] = useState<{ from: number; to: number } | null>(null);
   const difficulty = useMemo(() => getDifficulty(roundNumber), [roundNumber]);
   const roundId = round?.id;
+
+  // Measure slot width whenever the container resizes
+  const measureSlots = useCallback(() => {
+    if (containerRef.current) {
+      setSlotWidth(containerRef.current.offsetWidth / 3);
+    }
+  }, []);
+
+  useEffect(() => {
+    measureSlots();
+    const ro = new ResizeObserver(measureSlots);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [measureSlots]);
 
   useEffect(() => {
     if (!round) return;
@@ -100,7 +116,7 @@ export function GameScreen() {
 
       <div className="relative flex flex-1 items-end justify-center">
         <div className="absolute bottom-0 h-20 w-full max-w-2xl rounded-[50%] bg-emerald-300/25 blur-sm" />
-        <motion.div layout className="relative grid w-full max-w-2xl grid-cols-3 items-end gap-2 sm:gap-5">
+        <motion.div ref={containerRef} className="relative grid w-full max-w-2xl grid-cols-3 items-end gap-2 sm:gap-5">
           {round.cupOrder.map((cupId, slotIndex) => (
             <Cup
               key={cupId}
@@ -116,6 +132,7 @@ export function GameScreen() {
               targetLabel={target.label}
               activeSwap={activeSwap}
               swapMs={difficulty.swapMs}
+              slotWidth={slotWidth}
               onPick={() => {
                 sound.play('tap');
                 const isCorrect = cupId === round.correctCup;
