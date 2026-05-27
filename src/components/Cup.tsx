@@ -114,19 +114,29 @@ export function Cup({
               rotateY: rotateYFrames,
               scale: scaleFrames,
             }
-          : {
-              x: 0,
-              y: isSelected ? -14 : 0,
-              rotateY: 0,
-              scale: 1,
-              rotate: isSelected ? (isCorrect ? -4 : 5) : hasContent ? -3.5 : 0,
-            }
+          : showWink
+            ? {
+                x: 0,
+                y: [0, -10, 0],
+                rotateY: 0,
+                scale: [1, 1.04, 1],
+                rotate: [-4, 4, -4],
+              }
+            : {
+                x: 0,
+                y: isSelected ? -14 : 0,
+                rotateY: 0,
+                scale: 1,
+                rotate: isSelected ? (isCorrect ? -4 : 5) : hasContent ? -3.5 : 0,
+              }
       }
       whileTap={!disabled ? { scale: 0.96 } : undefined}
       transition={
         isActiveSwapCup
           ? swapTransition
-          : { type: 'spring', stiffness: 220, damping: 18, mass: 0.9 }
+          : showWink
+            ? { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+            : { type: 'spring', stiffness: 220, damping: 18, mass: 0.9 }
       }
     >
       {/* Ground shadow — stretches in direction of travel */}
@@ -140,14 +150,7 @@ export function Cup({
         transition={isActiveSwapCup ? swapTransition : { type: 'spring', stiffness: 220, damping: 18 }}
       />
 
-      {/* Subtle wink: the correct cup sways gently when all cups stop */}
-      {showWink && (
-        <motion.div
-          className="absolute inset-0 rounded-[26px]"
-          animate={{ rotate: [-0.8, 0.8, -0.8], y: [0, -2, 0] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      )}
+
 
       {/* Token under the cup */}
       <motion.div
