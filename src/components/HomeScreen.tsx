@@ -1,14 +1,17 @@
 import { motion } from 'framer-motion';
-import { Play, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { useState } from 'react';
+import { Play, Volume2, VolumeX } from 'lucide-react';
 import { sound } from '../lib/sound';
 import { useGameStore } from '../store/gameStore';
 import { Button } from './Button';
 
 export function HomeScreen() {
-  const highScore = useGameStore((state) => state.highScore);
   const soundEnabled = useGameStore((state) => state.soundEnabled);
   const startGame = useGameStore((state) => state.startGame);
   const toggleSound = useGameStore((state) => state.toggleSound);
+  const [name, setName] = useState('');
+
+  const canPlay = name.trim().length >= 2;
 
   return (
     <motion.div
@@ -18,11 +21,8 @@ export function HomeScreen() {
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
     >
-      <div className="flex w-full items-center justify-between">
-        <div className="flex items-center gap-2 rounded-full bg-white/70 px-4 py-2 font-black shadow-soft">
-          <Trophy size={20} className="text-amber-500" />
-          {highScore}
-        </div>
+      {/* Top bar */}
+      <div className="flex w-full items-center justify-end">
         <button
           aria-label="Alternar sonido"
           className="grid h-12 w-12 place-items-center rounded-full bg-white/75 shadow-soft transition-transform active:scale-95"
@@ -35,6 +35,7 @@ export function HomeScreen() {
         </button>
       </div>
 
+      {/* Hero */}
       <div className="grid place-items-center gap-6">
         <motion.div
           className="relative h-44 w-44"
@@ -55,26 +56,43 @@ export function HomeScreen() {
         <div>
           <h1 className="text-5xl font-black tracking-normal text-slate-900 sm:text-6xl">MemoCups</h1>
           <p className="mx-auto mt-3 max-w-sm text-lg font-bold leading-snug text-slate-600">
-            Recuerda lo que importa antes de que los vasos te confundan.
+            Sigue el vaso. 10 rondas. ¿Quién llega más lejos?
           </p>
         </div>
       </div>
 
+      {/* Name input + play */}
       <div className="grid w-full max-w-sm gap-3">
+        <div className="relative">
+          <input
+            id="player-name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && canPlay) {
+                sound.unlock();
+                sound.play('start');
+                startGame(name.trim());
+              }
+            }}
+            placeholder="Tu nombre..."
+            maxLength={20}
+            className="w-full rounded-[22px] border-2 border-transparent bg-white/80 px-5 py-4 text-center text-lg font-black text-slate-900 shadow-soft outline-none placeholder:font-bold placeholder:text-slate-400 focus:border-sky-300 focus:bg-white transition-all"
+          />
+        </div>
+
         <Button
           className="w-full"
+          disabled={!canPlay}
           onClick={() => {
             sound.unlock();
             sound.play('start');
-            startGame();
+            startGame(name.trim());
           }}
         >
           <Play size={22} fill="currentColor" />
           Jugar
-        </Button>
-        <Button tone="ghost" className="w-full" onClick={() => useGameStore.getState().setScreen('results')}>
-          <Trophy size={20} />
-          Resultados
         </Button>
       </div>
     </motion.div>

@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { createRound, type Phase, type Round, type Screen } from '../lib/game';
+import { createRound, MAX_ROUNDS, type Phase, type Round, type Screen } from '../lib/game';
 
 type Result = {
   score: number;
   round: number;
   highScore: number;
   accuracy: number;
+  won: boolean; // completed all MAX_ROUNDS
 };
 
 type GameState = {
@@ -20,12 +21,14 @@ type GameState = {
   correct: number;
   highScore: number;
   soundEnabled: boolean;
+  playerName: string;
   round: Round | null;
   selectedCup: number | null;
   lastCorrect: boolean | null;
   finalResult: Result | null;
   setScreen: (screen: Screen) => void;
-  startGame: () => void;
+  setPlayerName: (name: string) => void;
+  startGame: (name: string) => void;
   startRound: () => void;
   setPhase: (phase: Phase) => void;
   setCupOrder: (order: number[]) => void;
@@ -50,12 +53,14 @@ export const useGameStore = create<GameState>()(
       correct: 0,
       highScore: 0,
       soundEnabled: true,
+      playerName: '',
       round: null,
       selectedCup: null,
       lastCorrect: null,
       finalResult: null,
       setScreen: (screen) => set({ screen }),
-      startGame: () =>
+      setPlayerName: (name) => set({ playerName: name }),
+      startGame: (name) =>
         set({
           screen: 'game',
           phase: 'memorize',
@@ -68,6 +73,7 @@ export const useGameStore = create<GameState>()(
           selectedCup: null,
           lastCorrect: null,
           finalResult: null,
+          playerName: name,
           round: createRound(1),
         }),
       startRound: () => {
@@ -97,10 +103,11 @@ export const useGameStore = create<GameState>()(
           const nextHighScore = Math.max(state.highScore, nextScore);
           const accuracy = Math.round((nextCorrect / nextAttempts) * 100);
 
+          // Game over — out of lives
           if (nextLives <= 0) {
             return {
               phase: 'result',
-              screen: 'gameOver',
+              screen: 'results',
               selectedCup: cup,
               lastCorrect: false,
               attempts: nextAttempts,
@@ -114,6 +121,7 @@ export const useGameStore = create<GameState>()(
                 round: state.roundNumber,
                 highScore: nextHighScore,
                 accuracy,
+                won: false,
               },
             };
           }
@@ -134,6 +142,25 @@ export const useGameStore = create<GameState>()(
         set((state) => {
           if (state.lastCorrect) {
             const nextRound = state.roundNumber + 1;
+            const accuracy = Math.round((state.correct / state.attempts) * 100);
+
+            // Victory — completed all rounds
+            if (nextRound > MAX_ROUNDS) {
+              return {
+                screen: 'results',
+                phase: 'result',
+                selectedCup: null,
+                lastCorrect: null,
+                finalResult: {
+                  score: state.score,
+                  round: MAX_ROUNDS,
+                  highScore: state.highScore,
+                  accuracy,
+                  won: true,
+                },
+              };
+            }
+
             return {
               roundNumber: nextRound,
               phase: 'memorize',
@@ -142,6 +169,7 @@ export const useGameStore = create<GameState>()(
               round: createRound(nextRound),
             };
           }
+          // Wrong answer — retry same round
           return {
             phase: 'memorize',
             selectedCup: null,
@@ -151,7 +179,7 @@ export const useGameStore = create<GameState>()(
         }),
       pause: () => set({ screen: 'pause' }),
       resume: () => set({ screen: 'game' }),
-      restart: () => get().startGame(),
+      restart: () => get().startGame(get().playerName),
       toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
     }),
     {

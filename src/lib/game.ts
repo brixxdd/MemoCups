@@ -1,7 +1,9 @@
 export type ColorId = 'red' | 'blue' | 'green' | 'yellow' | 'purple';
 export type MemoryMode = 'word' | 'ink';
 export type Phase = 'ready' | 'memorize' | 'hide' | 'shuffle' | 'guess' | 'result';
-export type Screen = 'home' | 'game' | 'pause' | 'gameOver' | 'results';
+export type Screen = 'home' | 'game' | 'pause' | 'results';
+
+export const MAX_ROUNDS = 10;
 
 export const COLORS: Record<ColorId, { label: string; className: string; hex: string }> = {
   red: { label: 'ROJO', className: 'text-rose-500', hex: '#ef4444' },
@@ -24,12 +26,25 @@ export type Round = {
 const colorIds = Object.keys(COLORS) as ColorId[];
 
 export function getDifficulty(round: number) {
-  return {
-    memorizeMs: Math.max(700, 2200 - (round - 1) * 120),
-    swapMs: Math.max(180, 680 - (round - 1) * 45),
-    swaps: Math.min(12, 3 + Math.floor(round * 0.75)),
-    mismatchChance: Math.min(0.92, 0.44 + round * 0.04),
-  };
+  // Rounds 1–4: comfortable warm-up. Round 5+ escalates fast.
+  const swapMs =
+    round <= 4
+      ? Math.max(440, 700 - (round - 1) * 30)   // 700 → 610
+      : Math.max(180, 500 - (round - 5) * 64);   // 500 → 180 over rounds 5-10
+
+  const memorizeMs =
+    round <= 4
+      ? Math.max(1600, 2400 - (round - 1) * 100) // 2400 → 2100
+      : Math.max(700, 1800 - (round - 5) * 220); // 1800 → 700 over rounds 5-10
+
+  const swaps =
+    round <= 4
+      ? 3 + Math.floor(round / 2)                // 3–4
+      : Math.min(11, 5 + (round - 5));           // 5–10
+
+  const mismatchChance = Math.min(0.92, 0.44 + round * 0.04);
+
+  return { memorizeMs, swapMs, swaps, mismatchChance };
 }
 
 export function createRound(round: number): Round {

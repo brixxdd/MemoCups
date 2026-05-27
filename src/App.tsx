@@ -33,7 +33,6 @@ export default function App() {
           {screen === 'home' && <HomeScreen key="home" />}
           {screen === 'game' && <GameScreen key="game" />}
           {screen === 'pause' && <OverlayScreen key="pause" type="pause" />}
-          {screen === 'gameOver' && <OverlayScreen key="gameOver" type="gameOver" />}
           {screen === 'results' && <ResultsScreen key="results" />}
         </AnimatePresence>
       </section>

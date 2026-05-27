@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Home, Play, RotateCcw, Trophy, Volume2, VolumeX } from 'lucide-react';
+import { Home, Play, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { sound } from '../lib/sound';
 import { useGameStore } from '../store/gameStore';
 import { Button } from './Button';
@@ -62,12 +62,12 @@ export function OverlayScreen({ type }: { type: 'pause' | 'gameOver' }) {
               Nueva partida
             </Button>
           )}
-          <div className="grid grid-cols-3 gap-2">
-            <Button tone="ghost" className="px-2" onClick={() => setScreen('home')} aria-label="Inicio">
+          <div className="grid grid-cols-2 gap-2">
+            <Button tone="ghost" className="px-2" onClick={() => {
+              sound.play('tap');
+              setScreen('home');
+            }} aria-label="Inicio">
               <Home size={21} />
-            </Button>
-            <Button tone="ghost" className="px-2" onClick={() => setScreen('results')} aria-label="Resultados">
-              <Trophy size={21} />
             </Button>
             <Button
               tone="ghost"

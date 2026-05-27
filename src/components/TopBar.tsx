@@ -1,6 +1,7 @@
 import { Heart, Pause, Star, Trophy } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { sound } from '../lib/sound';
+import { MAX_ROUNDS } from '../lib/game';
 
 export function TopBar() {
   const lives = useGameStore((state) => state.lives);
@@ -13,7 +14,7 @@ export function TopBar() {
       <div className="grid grid-cols-3 gap-2 rounded-[24px] bg-white/75 p-2 shadow-soft backdrop-blur">
         <Stat icon={<Heart size={18} fill="currentColor" />} value={lives} label="Vidas" className="text-rose-500" />
         <Stat icon={<Star size={18} fill="currentColor" />} value={score} label="Puntos" className="text-amber-500" />
-        <Stat icon={<Trophy size={18} />} value={roundNumber} label="Ronda" className="text-sky-500" />
+        <Stat icon={<Trophy size={18} />} value={`${roundNumber}/${MAX_ROUNDS}`} label="Ronda" className="text-sky-500" />
       </div>
       <button
         aria-label="Pausar"
@@ -29,7 +30,7 @@ export function TopBar() {
   );
 }
 
-function Stat({ icon, value, label, className }: { icon: React.ReactNode; value: number; label: string; className: string }) {
+function Stat({ icon, value, label, className }: { icon: React.ReactNode; value: number | string; label: string; className: string }) {
   return (
     <div className="flex min-w-0 flex-col items-center justify-center rounded-[18px] bg-white/70 px-1 py-2">
       <div className={`flex items-center gap-1 text-sm font-black ${className}`}>
