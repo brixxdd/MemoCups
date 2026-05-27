@@ -11,7 +11,7 @@ export function Cup({
   isSelected,
   showToken,
   reveal,
-  showContentMarker,
+  showWink,
   showTarget,
   targetLabel,
   activeSwap,
@@ -26,7 +26,7 @@ export function Cup({
   isSelected: boolean;
   showToken: boolean;
   reveal: boolean;
-  showContentMarker: boolean;
+  showWink: boolean;
   showTarget: boolean;
   targetLabel: string;
   activeSwap: { from: number; to: number } | null;
@@ -140,24 +140,14 @@ export function Cup({
         transition={isActiveSwapCup ? swapTransition : { type: 'spring', stiffness: 220, damping: 18 }}
       />
 
-      {/* Content marker dot above cup */}
-      <motion.div
-        className="absolute -top-8 z-30 grid h-7 w-7 place-items-center rounded-full bg-white shadow-soft sm:-top-9 sm:h-8 sm:w-8"
-        initial={false}
-        animate={{
-          opacity: showContentMarker ? 1 : 0,
-          y: showContentMarker ? -2 : 8,
-          scale: showContentMarker ? [1, 1.08, 1] : 0.85,
-          rotate: showContentMarker ? [-4, 4, -4] : 0,
-        }}
-        transition={{
-          duration: showContentMarker ? 0.95 : 0.18,
-          repeat: showContentMarker ? Infinity : 0,
-          ease: 'easeInOut',
-        }}
-      >
-        <div className={`h-3.5 w-3.5 rounded-full ${COLORS[target].className.replace('text-', 'bg-')}`} />
-      </motion.div>
+      {/* Subtle wink: the correct cup sways gently when all cups stop */}
+      {showWink && (
+        <motion.div
+          className="absolute inset-0 rounded-[26px]"
+          animate={{ rotate: [-0.8, 0.8, -0.8], y: [0, -2, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
 
       {/* Token under the cup */}
       <motion.div

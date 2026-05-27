@@ -88,7 +88,6 @@ export function GameScreen() {
   const canPick = phase === 'guess';
   const showToken = phase === 'memorize' || phase === 'hide';
   const reveal = phase === 'result';
-  const showContentMarker = phase !== 'guess';
   const target = getRoundTarget(round);
 
   return (
@@ -127,7 +126,7 @@ export function GameScreen() {
               isSelected={selectedCup === cupId}
               showToken={showToken && cupId === round.correctCup}
               reveal={reveal && cupId === round.correctCup}
-              showContentMarker={showContentMarker && cupId === round.correctCup}
+              showWink={phase === 'guess' && cupId === round.correctCup}
               showTarget={phase === 'memorize' && cupId === round.correctCup}
               targetLabel={target.label}
               activeSwap={activeSwap}
